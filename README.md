@@ -1,73 +1,186 @@
-# 🧹 Termux Auto Cleaner & Updater
+🖥️ Termux Toolbox
 
-[🇮🇩 Bahasa Indonesia](#-bahasa-indonesia) | [🇬🇧 English](#-english)
+"🇮🇩 Bahasa Indonesia" (#-bahasa-indonesia) | "🇬🇧 English" (#-english)
 
----
-
-## 🇮🇩 Bahasa Indonesia
-
-Tools berbasis **Bash Script** yang ringan untuk memperbarui seluruh paket Termux sekaligus membersihkan file sampah dan cache yang tidak terpakai secara otomatis melalui menu interaktif.
-
-### ✨ Fitur Utama
-* **Update & Upgrade Otomatis:** Memperbarui repositori dan paket sistem tanpa jeda konfirmasi manual (`-y` & non-interactive).
-* **Pembersih Paket & Cache:** Menghapus dependensi yang tidak terpakai (`apt autoremove`), membersihkan cache instalasi (`apt clean`), serta cache Python (`pip cache purge`).
-* **Indikator Sisa Ruang:** Menampilkan perbandingan sisa kapasitas penyimpanan Termux sebelum dan sesudah dibersihkan.
-* **Perintah Global:** Dapat dijalankan dari direktori mana saja hanya dengan mengetik perintah `bersih`.
-
-### 🚀 Cara Instalasi & Penggunaan
-
-Salin dan jalankan perintah berikut di Termux Anda:
-
-```bash
-pkg update && pkg install git -y
-git clone https://github.com/RahmanGileh/termux-cleaner
-cd termux-cleaner
-chmod +x cleaner.sh
-mv cleaner.sh \$PREFIX/bin/bersih
-```
-
-Untuk menjalankan tools kapan saja, cukup ketik:
-```bash
-bersih
-```
-
-### 📋 Pilihan Menu
-1. **Update & Upgrade Paket Saja** — Memperbarui seluruh paket Termux.
-2. **Bersihkan Paket & Cache Saja** — Menghapus cache sampah dan menampilkan ruang kosong yang berhasil dihemat.
-3. **Jalankan Semua (Update + Bersihkan)** — Menjalankan pembaruan dan pembersihan secara berurutan.
-4. **Keluar** — Menutup program.
+A lightweight, multifunctional Termux utility built with Bash Script, featuring a cyber-inspired interface and practical system maintenance tools.
 
 ---
 
-## 🇬🇧 English
+🇮🇩 Bahasa Indonesia
 
-A lightweight **Bash Script** tool designed to automatically update Termux packages and clean up unused dependencies and cache files through a simple interactive menu.
+Termux Toolbox adalah kumpulan utilitas berbasis Bash Script yang dirancang untuk mempermudah pengelolaan lingkungan Termux melalui satu menu interaktif.
 
-### ✨ Key Features
-* **Auto Update & Upgrade:** Updates repositories and upgrades installed packages automatically without manual confirmation prompts.
-* **Package & Cache Cleaner:** Removes unused dependencies (`apt autoremove`), clears installation cache (`apt clean`), and purges Python cache (`pip cache purge`).
-* **Storage Space Indicator:** Displays available Termux storage space before and after cleanup.
-* **Global Command:** Accessible from any directory by simply typing `bersih`.
+Menggabungkan tampilan terminal bergaya cyber dengan fungsi utilitas yang praktis, ringan, dan mudah digunakan.
 
-### 🚀 Installation & Usage
+✨ Fitur Utama
 
-Copy and run the following commands in your Termux terminal:
+* System Information: Menampilkan informasi Android, kernel, arsitektur perangkat, dan penyimpanan.
+* System Updater: Memperbarui repositori dan seluruh paket Termux.
+* System Cleaner: Membersihkan dependensi yang tidak terpakai, cache APT, dan cache Python.
+* Package Manager: Mencari, memasang, melihat, dan menghapus paket Termux.
+* Storage Analyzer: Menganalisis penggunaan penyimpanan dan folder terbesar.
+* Network Diagnostics: Memeriksa koneksi internet, DNS, dan konektivitas jaringan.
+* ADB Monitor: Memantau perangkat Android yang terhubung melalui ADB.
+* Package Backup: Menyimpan daftar paket yang terpasang.
+* Activity Logs: Menyimpan riwayat aktivitas Toolbox.
 
-```bash
+🛡️ Keamanan
+
+* Tidak membutuhkan akses root.
+* Tidak menghapus aplikasi sistem Android secara otomatis.
+* Menyediakan simulasi sebelum proses autoremove.
+* Meminta konfirmasi untuk operasi penghapusan paket.
+* Dirancang untuk pemeliharaan lingkungan Termux secara lebih aman.
+
+🚀 Instalasi & Penggunaan
+
+Pastikan Git sudah tersedia:
+
 pkg update && pkg install git -y
-git clone https://github.com/RahmanGileh/termux-cleaner
-cd termux-cleaner
-chmod +x cleaner.sh
-mv cleaner.sh \$PREFIX/bin/bersih
-```
 
-To launch the tool anytime, simply run:
-```bash
-bersih
-```
+Clone repository:
 
-### 📋 Menu Options
-1. **Update & Upgrade Packages Only** — Updates all installed Termux packages.
-2. **Clean Packages & Cache Only** — Removes junk cache and displays freed storage space.
-3. **Run All (Update + Clean)** — Executes system update followed by cleanup.
-4. **Exit** — Closes the tool.
+git clone https://github.com/RahmanGileh/termux-cleaner Termux-Toolbox
+
+Masuk ke direktori:
+
+cd ~/Termux-Toolbox
+
+Berikan izin eksekusi:
+
+chmod +x toolbox.sh
+
+Pasang command global:
+
+ln -sf "$HOME/Termux-Toolbox/toolbox.sh" "$PREFIX/bin/toolbox"
+
+Sekarang jalankan dari direktori mana saja:
+
+toolbox
+
+📋 Menu Utama
+
+Menu| Fungsi
+1| System Information
+2| System Updater
+3| System Cleaner
+4| Package Manager
+5| Storage Analyzer
+6| Backup Package List
+7| Network Diagnostics
+8| ADB Monitor
+9| Activity Logs
+0| Exit
+
+📦 Dependensi Tambahan
+
+Beberapa fitur membutuhkan paket tambahan:
+
+pkg install curl less iputils
+
+Untuk fitur ADB:
+
+pkg install android-tools
+
+📁 Direktori Data
+
+Termux-Toolbox/
+├── toolbox.sh
+├── logs/
+└── backups/
+
+Log dan backup digunakan untuk menyimpan riwayat aktivitas serta daftar paket yang terpasang.
+
+---
+
+🇬🇧 English
+
+Termux Toolbox is a lightweight collection of Bash-based utilities designed to simplify Termux environment management through a single interactive menu.
+
+Combining a cyber-inspired terminal interface with practical system utilities, it provides a convenient and accessible maintenance experience.
+
+✨ Key Features
+
+* System Information: Displays Android, kernel, device architecture, and storage information.
+* System Updater: Updates repositories and upgrades installed Termux packages.
+* System Cleaner: Removes unused dependencies and clears APT and Python caches.
+* Package Manager: Searches, installs, lists, and removes Termux packages.
+* Storage Analyzer: Examines storage usage and identifies large directories.
+* Network Diagnostics: Checks internet connectivity, DNS, and basic network connectivity.
+* ADB Monitor: Monitors Android devices connected through ADB.
+* Package Backup: Saves a list of installed packages.
+* Activity Logs: Records Toolbox activity history.
+
+🛡️ Safety
+
+* No root access required.
+* Does not automatically remove Android system applications.
+* Provides an autoremove simulation before package removal.
+* Requests confirmation for package removal operations.
+* Designed for safer Termux environment maintenance.
+
+🚀 Installation & Usage
+
+Install Git:
+
+pkg update && pkg install git -y
+
+Clone the repository:
+
+git clone https://github.com/RahmanGileh/termux-cleaner Termux-Toolbox
+
+Enter the project directory:
+
+cd ~/Termux-Toolbox
+
+Grant execution permission:
+
+chmod +x toolbox.sh
+
+Create a global command:
+
+ln -sf "$HOME/Termux-Toolbox/toolbox.sh" "$PREFIX/bin/toolbox"
+
+Run the Toolbox from anywhere:
+
+toolbox
+
+📋 Main Menu
+
+Menu| Function
+1| System Information
+2| System Updater
+3| System Cleaner
+4| Package Manager
+5| Storage Analyzer
+6| Backup Package List
+7| Network Diagnostics
+8| ADB Monitor
+9| Activity Logs
+0| Exit
+
+📦 Additional Dependencies
+
+For additional utilities:
+
+pkg install curl less iputils
+
+For ADB functionality:
+
+pkg install android-tools
+
+---
+
+👨‍💻 Author
+
+RahmanGileh
+
+Developed with Bash Script for the Termux environment.
+
+📜 License
+
+Open-source project. License details will be provided in the repository.
+
+---
+
+Termux Toolbox — Your Terminal, Your Utilities.
