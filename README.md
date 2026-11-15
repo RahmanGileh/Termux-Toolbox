@@ -20,8 +20,8 @@ Salin dan jalankan perintah berikut di Termux Anda:
 
 ```bash
 pkg update && pkg install git -y
-git clone https://github.com
-cd termux-cleane
+git clone https://github.com/RahmanGileh/termux-cleaner
+cd termux-cleaner
 chmod +x cleaner.sh
 mv cleaner.sh \$PREFIX/bin/bersih
 ```
@@ -55,8 +55,8 @@ Copy and run the following commands in your Termux terminal:
 
 ```bash
 pkg update && pkg install git -y
-git clone https://github.com
-cd termux-cleane
+git clone https://github.com/RahmanGileh/termux-cleaner
+cd termux-cleaner
 chmod +x cleaner.sh
 mv cleaner.sh \$PREFIX/bin/bersih
 ```
