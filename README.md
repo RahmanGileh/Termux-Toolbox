@@ -1,11 +1,10 @@
-TERMUX TOOLBOX v2.0
+# TERMUX TOOLBOX v2.0
+### Small toolbox. Less manual chaos.
 
-Small toolbox. Less manual chaos.
-
-Author: RahmanGileh
-License: MIT (tambahan License) 
-Platform: Android + Termux  
-Root: Tidak diperlukan
+**Author:** RahmanGileh  
+**License:** MIT  
+**Platform:** Android + Termux  
+**Root:** Tidak diperlukan
 
 
 ---
