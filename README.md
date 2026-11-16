@@ -2,7 +2,7 @@
 ### Small toolbox. Less manual chaos.
 
 **Author:** RahmanGileh  
-**License:** MIT
+**License:** MIT 
 **Platform:** Android + Termux  
 **Root:** Tidak diperlukan
 
