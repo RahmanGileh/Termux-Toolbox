@@ -1,499 +1,339 @@
-
 #!/data/data/com.termux/files/usr/bin/bash
+# Termux Toolbox v1.1 - safer maintenance utilities
+# Copyright (c) RahmanGileh
 
-# ==================================================
-# TERMUX TOOLBOX v1.0
-# Cyber Utility Edition
-# Safe | Lightweight | No Root
-# ==================================================
+set -o pipefail
 
-# ---------- COLOR ENGINE ----------
-R='\033[1;31m'
-G='\033[1;32m'
-C='\033[1;36m'
-Y='\033[1;33m'
-B='\033[1;34m'
-W='\033[1;37m'
-D='\033[0;90m'
-N='\033[0m'
+# ---------- ENVIRONMENT ----------
+if [[ -z "${PREFIX:-}" || ! -x "${PREFIX}/bin/pkg" ]]; then
+  printf 'ERROR: Script ini harus dijalankan dari aplikasi Termux.\n' >&2
+  exit 1
+fi
 
-# ---------- DIRECTORY ----------
-BASE="$HOME/.termux-toolbox"
-LOGS="$BASE/logs"
-BACKUPS="$BASE/backups"
+# ---------- COLORS ----------
+if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
+  R=$'\033[1;31m'; G=$'\033[1;32m'; C=$'\033[1;36m'
+  Y=$'\033[1;33m'; W=$'\033[1;37m'; D=$'\033[0;90m'; N=$'\033[0m'
+else
+  R=''; G=''; C=''; Y=''; W=''; D=''; N=''
+fi
 
-mkdir -p "$LOGS" "$BACKUPS"
-
+# ---------- DATA DIRECTORIES ----------
+BASE="${HOME}/.termux-toolbox"
+LOGS="${BASE}/logs"
+BACKUPS="${BASE}/backups"
+if ! mkdir -p "$LOGS" "$BACKUPS"; then
+  printf 'ERROR: Tidak bisa membuat direktori data: %s\n' "$BASE" >&2
+  exit 1
+fi
 LOG_FILE="$LOGS/session_$(date +%Y%m%d).log"
 
-# ---------- LOGGING ----------
-exec > >(tee -a "$LOG_FILE") 2>&1
+# Avoid logging terminal-control output and avoid a pipeline for interactive input.
+if command -v tee >/dev/null 2>&1; then
+  exec > >(tee -a "$LOG_FILE") 2>&1
+fi
 
-# ---------- BASIC FUNCTIONS ----------
-
+# ---------- HELPERS ----------
 pause() {
-    echo
-    read -r -p " [ENTER] Kembali ke menu..." _
+  printf '\n%s[ENTER] Tekan Enter untuk kembali...%s' "$D" "$N"
+  IFS= read -r _ || true
 }
 
-line() {
-    echo -e "${D}--------------------------------------------------${N}"
-}
+line() { printf '%s------------------------------------------------------------%s\n' "$D" "$N"; }
 
 header() {
-    clear
-    echo -e "${C}"
-    echo "  _______ ______ _____  __  __ _    _"
-    echo " |__   __|  ____|  __ \|  \/  | |  | |"
-    echo "    | |  | |__  | |__) | \  / | |  | |"
-    echo "    | |  |  __| |  _  /| |\/| | |  | |"
-    echo "    | |  | |____| | \ \| |  | | |__| |"
-    echo "    |_|  |______|_|  \_\_|  |_|\____/"
-    echo -e "${N}"
-    echo -e "${G}          T O O L B O X   v1.0${N}"
-    echo -e "${D}          CYBER UTILITY EDITION${N}"
-    line
+  clear 2>/dev/null || true
+  printf '%s' "$C"
+  cat <<'BANNER'
+ _______ ______ _____  __  __ _    _
+|__   __|  ____|  __ \|  \/  | |  | |
+   | |  | |__  | |__) | \  / | |  | |
+   | |  |  __| |  _  /| |\/| | |  | |
+   | |  | |____| | \ \| |  | | |__| |
+   |_|  |______|_|  \_\_|  |_|\____/
+BANNER
+  printf '%s%sTERMUX TOOLBOX v1.1%s\n' "$G" '          ' "$N"
+  printf '%s       CYBER UTILITY EDITION%s\n' "$D" "$N"
+  line
 }
+
+has() { command -v "$1" >/dev/null 2>&1; }
+
+status()  { printf '%s[ OK ]%s %s\n' "$G" "$N" "$1"; }
+warning() { printf '%s[ WARN ]%s %s\n' "$Y" "$N" "$1"; }
+error()   { printf '%s[ ERROR ]%s %s\n' "$R" "$N" "$1"; }
 
 ask() {
-    local answer
-    read -r -p " [ ? ] $1 [y/N]: " answer
-    [[ "$answer" =~ ^[Yy]$ ]]
-}
-
-has() {
-    command -v "$1" >/dev/null 2>&1
+  local answer
+  printf '%s [y/N]: ' "$1"
+  IFS= read -r answer || return 1
+  [[ "$answer" =~ ^[Yy]([Ee][Ss])?$ ]]
 }
 
 disk_free() {
-    df -h "$HOME" | awk 'NR==2 {print $4}'
+  df -h "$HOME" 2>/dev/null | awk 'NR==2 {print $4; found=1} END {if (!found) print "Unknown"}'
 }
 
-status() {
-    echo -e "${G}[ OK ]${N} $1"
+valid_package_name() { [[ "$1" =~ ^[a-zA-Z0-9][a-zA-Z0-9.+_-]*$ ]]; }
+
+show_pager() {
+  if has less; then less -F -X
+  else cat
+  fi
 }
 
-warning() {
-    echo -e "${Y}[ WARN ]${N} $1"
-}
-
-error() {
-    echo -e "${R}[ ERROR ]${N} $1"
-}
-
-# ==================================================
-# 1. SYSTEM INFORMATION
-# ==================================================
-
+# ---------- 1. SYSTEM INFORMATION ----------
 system_info() {
-    header
-
-    echo -e "${C} [ SYSTEM INFORMATION ]${N}"
-    line
-
-    echo -e "${W} Android       : ${G}$(getprop ro.build.version.release 2>/dev/null || echo Unknown)${N}"
-    echo -e "${W} Android SDK   : ${G}$(getprop ro.build.version.sdk 2>/dev/null || echo Unknown)${N}"
-    echo -e "${W} Architecture  : ${G}$(uname -m)${N}"
-    echo -e "${W} Kernel        : ${G}$(uname -r)${N}"
-    echo -e "${W} Shell         : ${G}$SHELL${N}"
-    echo -e "${W} Termux Prefix : ${G}$PREFIX${N}"
-
-    line
-    echo -e "${C} [ STORAGE INFORMATION ]${N}"
-    df -h "$HOME"
-
-    line
-    echo -e "${C} [ PACKAGE COUNT ]${N}"
-
-    if has dpkg-query; then
-        dpkg-query -W -f='${binary:Package}\n' 2>/dev/null | wc -l
-    fi
-
-    pause
+  header
+  printf '%s[ SYSTEM INFORMATION ]%s\n' "$C" "$N"
+  line
+  local android sdk shell_name package_count
+  android="$(getprop ro.build.version.release 2>/dev/null || true)"
+  sdk="$(getprop ro.build.version.sdk 2>/dev/null || true)"
+  shell_name="${SHELL:-Unknown}"
+  [[ -n "$android" ]] || android='Unknown'
+  [[ -n "$sdk" ]] || sdk='Unknown'
+  printf ' Android version : %s\n' "$android"
+  printf ' Android SDK     : %s\n' "$sdk"
+  printf ' Architecture    : %s\n' "$(uname -m 2>/dev/null || echo Unknown)"
+  printf ' Kernel          : %s\n' "$(uname -r 2>/dev/null || echo Unknown)"
+  printf ' Shell           : %s\n' "$shell_name"
+  printf ' Termux prefix   : %s\n' "$PREFIX"
+  line
+  printf '%s[ STORAGE ]%s\n' "$C" "$N"
+  df -h "$HOME" 2>/dev/null || warning 'Informasi penyimpanan tidak tersedia.'
+  line
+  printf '%s[ INSTALLED TERMUX PACKAGES ]%s\n' "$C" "$N"
+  if has dpkg-query; then
+    package_count="$(dpkg-query -W -f='${binary:Package}\n' 2>/dev/null | wc -l | tr -d ' ')"
+    printf ' Jumlah paket: %s\n' "${package_count:-0}"
+  else
+    warning 'dpkg-query tidak tersedia.'
+  fi
+  pause
 }
 
-# ==================================================
-# 2. SYSTEM UPDATER
-# ==================================================
-
+# ---------- 2. SYSTEM UPDATER ----------
 system_update() {
-    header
-
-    echo -e "${C} [ SYSTEM UPDATE ]${N}"
-    line
-
-    if ! has pkg; then
-        error "Package manager tidak ditemukan."
-        pause
-        return
-    fi
-
-    echo -e "${Y} [1/2] Memperbarui repository...${N}"
-
-    if ! pkg update; then
-        error "Repository update gagal."
-        pause
-        return
-    fi
-
-    echo
-    echo -e "${Y} [2/2] Upgrade paket...${N}"
-
-    if pkg upgrade -y; then
-        status "Upgrade selesai."
-    else
-        error "Upgrade gagal. Periksa pesan error."
-    fi
-
-    pause
+  header
+  printf '%s[ SYSTEM UPDATER ]%s\n' "$C" "$N"
+  line
+  if ! has pkg; then error 'Perintah pkg tidak ditemukan.'; pause; return; fi
+  warning 'Proses ini memperbarui paket di lingkungan Termux, bukan Android.'
+  if ! ask 'Jalankan pkg update lalu pkg upgrade?'; then warning 'Update dibatalkan.'; pause; return; fi
+  if ! pkg update; then error 'Pembaruan daftar repository gagal. Periksa mirror dan koneksi.'; pause; return; fi
+  if pkg upgrade -y; then status 'Paket Termux berhasil diperbarui.'
+  else error 'Upgrade gagal. Periksa pesan dari pkg.'; fi
+  pause
 }
 
-# ==================================================
-# 3. SYSTEM CLEANER
-# ==================================================
-
+# ---------- 3. SYSTEM CLEANER ----------
 cleaner() {
-    header
-
-    local before after
-
-    before=$(disk_free)
-
-    echo -e "${C} [ SYSTEM CLEANER ]${N}"
-    echo -e " Ruang kosong sebelum: ${G}$before${N}"
-    line
-
-    echo -e "${Y} [1] Simulasi autoremove${N}"
-
-    apt-get -s autoremove
-
-    echo
-    warning "Periksa daftar paket sebelum menghapus."
-
-    if ask "Lanjutkan autoremove?"; then
-        if apt-get autoremove -y; then
-            status "Autoremove selesai."
-        else
-            error "Autoremove gagal."
-        fi
-    else
-        warning "Autoremove dilewati."
-    fi
-
-    echo
-    echo -e "${Y} [2] Membersihkan APT cache${N}"
-
-    if apt-get clean && apt-get autoclean -y; then
-        status "APT cache dibersihkan."
-    else
-        error "Pembersihan APT gagal."
-    fi
-
-    echo
-    echo -e "${Y} [3] Membersihkan Python cache${N}"
-
-    if has pip; then
-        if ask "Bersihkan pip cache?"; then
-            pip cache purge
-        fi
-    elif has pip3; then
-        if ask "Bersihkan pip3 cache?"; then
-            pip3 cache purge
-        fi
-    else
-        warning "Pip tidak ditemukan."
-    fi
-
-    after=$(disk_free)
-
-    line
-    echo -e "${G} [ COMPLETE ]${N}"
-    echo -e " Sebelum : $before"
-    echo -e " Sesudah : $after"
-
-    pause
+  header
+  local before after
+  before="$(disk_free)"
+  printf '%s[ SYSTEM CLEANER ]%s\n' "$C" "$N"
+  printf ' Ruang kosong sebelum: %s\n' "$before"
+  line
+  printf '%s[1] Simulasi paket autoremove%s\n' "$Y" "$N"
+  if apt-get -s autoremove; then
+    warning 'Simulasi di atas hanya perkiraan paket yang akan dihapus.'
+    if ask 'Jalankan autoremove sungguhan? Periksa daftar paket dengan teliti'; then
+      if apt-get autoremove; then status 'Autoremove selesai.'
+      else error 'Autoremove gagal.'; fi
+    else warning 'Autoremove dilewati.'; fi
+  else
+    warning 'Simulasi autoremove tidak berhasil; langkah ini dilewati.'
+  fi
+  printf '\n%s[2] Membersihkan cache APT%s\n' "$Y" "$N"
+  if ask 'Hapus cache unduhan APT?'; then
+    if apt-get clean && apt-get autoclean; then status 'Cache APT dibersihkan.'
+    else error 'Pembersihan cache APT gagal.'; fi
+  else warning 'Pembersihan cache APT dilewati.'; fi
+  printf '\n%s[3] Cache Python%s\n' "$Y" "$N"
+  if has pip; then
+    if ask 'Bersihkan cache pip?'; then pip cache purge || warning 'Cache pip tidak berhasil dibersihkan.'; fi
+  elif has pip3; then
+    if ask 'Bersihkan cache pip3?'; then pip3 cache purge || warning 'Cache pip3 tidak berhasil dibersihkan.'; fi
+  else warning 'pip tidak terpasang; bagian ini dilewati.'; fi
+  after="$(disk_free)"
+  line
+  printf ' Ruang kosong sebelum : %s\n Ruang kosong sesudah : %s\n' "$before" "$after"
+  warning 'Cleaner hanya mengelola cache dan paket Termux; tidak menyentuh aplikasi Android.'
+  pause
 }
 
-# ==================================================
-# 4. PACKAGE MANAGER
-# ==================================================
-
+# ---------- 4. PACKAGE MANAGER ----------
 package_manager() {
-    while true; do
-        header
-
-        echo -e "${C} [ PACKAGE MANAGER ]${N}"
-        line
-        echo " 1. Cari paket"
-        echo " 2. Lihat paket terpasang"
-        echo " 3. Install paket"
-        echo " 4. Hapus paket Termux"
-        echo " 5. Kembali"
-        line
-
-        read -r -p " Pilihan: " choice
-
-        case "$choice" in
-            1)
-                read -r -p " Nama paket: " name
-                if [[ -n "$name" ]]; then
-                    pkg search "$name"
-                fi
-                pause
-                ;;
-
-            2)
-                pkg list-installed | less
-                ;;
-
-            3)
-                read -r -p " Paket yang ingin diinstall: " name
-
-                if [[ "$name" =~ ^[a-zA-Z0-9.+_-]+$ ]]; then
-                    if ask "Install $name?"; then
-                        pkg install "$name"
-                    fi
-                else
-                    warning "Nama paket tidak valid."
-                fi
-                pause
-                ;;
-
-            4)
-                read -r -p " Paket yang ingin dihapus: " name
-
-                if [[ "$name" =~ ^[a-zA-Z0-9.+_-]+$ ]]; then
-                    if ask "Yakin menghapus paket Termux $name?"; then
-                        pkg uninstall "$name"
-                    fi
-                else
-                    warning "Nama paket tidak valid."
-                fi
-                pause
-                ;;
-
-            5)
-                break
-                ;;
-
-            *)
-                warning "Pilihan tidak valid."
-                sleep 1
-                ;;
-        esac
-    done
-}
-
-# ==================================================
-# 5. STORAGE ANALYZER
-# ==================================================
-
-storage_analyzer() {
+  local choice name
+  while true; do
     header
-
-    echo -e "${C} [ STORAGE ANALYZER ]${N}"
+    printf '%s[ PACKAGE MANAGER ]%s\n' "$C" "$N"
     line
-
-    echo -e "${Y} [1] Ringkasan penyimpanan${N}"
-    df -h "$HOME"
-
-    echo
-    echo -e "${Y} [2] Folder terbesar di HOME${N}"
-
-    du -h -d 1 "$HOME" 2>/dev/null | sort -hr | head -15
-
-    echo
-    echo -e "${D}Catatan: pemeriksaan folder bisa memerlukan waktu.${N}"
-
-    pause
-}
-
-# ==================================================
-# 6. NETWORK DIAGNOSTICS
-# ==================================================
-
-network_tools() {
-    header
-
-    echo -e "${C} [ NETWORK DIAGNOSTICS ]${N}"
+    printf ' 1. Cari paket\n 2. Lihat paket terpasang\n 3. Install paket\n 4. Hapus paket Termux\n 5. Kembali\n'
     line
-
-    echo -e "${Y} [1] Koneksi internet${N}"
-
-    if has curl; then
-        if curl -Is --max-time 8 https://termux.dev >/dev/null; then
-            status "Koneksi HTTPS berhasil."
+    printf ' Pilihan: '
+    IFS= read -r choice || return
+    case "$choice" in
+      1)
+        printf ' Nama/kata kunci paket: '; IFS= read -r name || continue
+        if [[ -n "$name" ]]; then pkg search "$name"; else warning 'Kata kunci kosong.'; fi
+        pause ;;
+      2)
+        pkg list-installed 2>&1 | show_pager ;;
+      3)
+        printf ' Nama paket yang ingin diinstall: '; IFS= read -r name || continue
+        if valid_package_name "$name"; then
+          if ask "Install paket '$name'?"; then pkg install "$name"; else warning 'Instalasi dibatalkan.'; fi
+        else warning 'Nama paket tidak valid.'; fi
+        pause ;;
+      4)
+        printf ' Nama paket Termux yang ingin dihapus: '; IFS= read -r name || continue
+        if ! valid_package_name "$name"; then
+          warning 'Nama paket tidak valid.'
+        elif [[ "$name" =~ ^(apt|bash|coreutils|dpkg|termux-exec|termux-keyring|termux-tools|termux-am|termux-licenses)$ ]]; then
+          error "Paket inti '$name' dilindungi agar Termux tidak rusak."
+        elif ! dpkg-query -W -f='${Status}' "$name" 2>/dev/null | grep -q 'install ok installed'; then
+          warning "Paket '$name' tidak terdeteksi sebagai paket terpasang."
         else
-            warning "Koneksi HTTPS gagal atau timeout."
+          printf '\nPaket yang dipilih: %s\n' "$name"
+          warning 'Menghapus dependensi inti dapat merusak instalasi Termux.'
+          if ask "Yakin menghapus paket '$name'?"; then pkg uninstall "$name"; else warning 'Penghapusan dibatalkan.'; fi
         fi
-    else
-        warning "curl belum terpasang."
-    fi
-
-    echo
-    echo -e "${Y} [2] Pemeriksaan DNS${N}"
-
-    if has getent; then
-        if getent hosts termux.dev; then
-            status "DNS berhasil."
-        else
-            warning "DNS gagal."
-        fi
-    else
-        warning "getent tidak tersedia."
-    fi
-
-    echo
-    echo -e "${Y} [3] Pemeriksaan ping${N}"
-
-    if has ping; then
-        ping -c 4 -W 3 1.1.1.1
-    else
-        warning "Ping tidak tersedia."
-    fi
-
-    pause
-}
-
-# ==================================================
-# 7. ADB MONITOR
-# ==================================================
-
-adb_monitor() {
-    header
-
-    echo -e "${C} [ ADB MONITOR ]${N}"
-    line
-
-    if ! has adb; then
-        warning "ADB belum terpasang."
-        echo "Install dengan: pkg install android-tools"
-        pause
-        return
-    fi
-
-    echo -e "${Y} [ CONNECTED DEVICES ]${N}"
-    adb devices -l
-
-    echo
-    echo -e "${Y} [ OPTIONAL PACKAGE INSPECTION ]${N}"
-
-    if ask "Lihat aplikasi pihak ketiga pada perangkat terhubung?"; then
-        adb shell pm list packages -3
-    fi
-
-    echo
-    warning "Mode monitor: tidak melakukan penghapusan aplikasi Android."
-
-    pause
-}
-
-# ==================================================
-# 8. BACKUP PACKAGE LIST
-# ==================================================
-
-backup_packages() {
-    header
-
-    echo -e "${C} [ PACKAGE BACKUP ]${N}"
-    line
-
-    local file="$BACKUPS/packages_$(date +%Y%m%d_%H%M%S).txt"
-
-    if dpkg-query -W -f='${binary:Package}\n' > "$file" 2>/dev/null; then
-        status "Daftar paket berhasil disimpan."
-        echo
-        echo "Lokasi backup:"
-        echo "$file"
-    else
-        error "Backup gagal."
-    fi
-
-    pause
-}
-
-# ==================================================
-# 9. ACTIVITY LOGS
-# ==================================================
-
-activity_logs() {
-    header
-
-    echo -e "${C} [ ACTIVITY LOGS ]${N}"
-    line
-
-    echo "Lokasi: $LOGS"
-    echo
-
-    ls -lh "$LOGS"
-
-    echo
-    if ask "Lihat log hari ini?"; then
-        less "$LOG_FILE"
-    fi
-
-    pause
-}
-
-# ==================================================
-# MAIN DASHBOARD
-# ==================================================
-
-while true; do
-    header
-
-    echo -e "${W} USER       : ${G}$(whoami)${N}"
-    echo -e "${W} STORAGE    : ${G}$(disk_free) FREE${N}"
-    echo -e "${W} DEVICE     : ${G}$(uname -m)${N}"
-    echo -e "${W} STATUS     : ${G}TOOLBOX ONLINE${N}"
-
-    line
-
-    echo -e "${C} [ SYSTEM UTILITIES ]${N}"
-    echo " 1. System Information"
-    echo " 2. System Updater"
-    echo " 3. System Cleaner"
-
-    echo
-    echo -e "${C} [ PACKAGE & STORAGE ]${N}"
-    echo " 4. Package Manager"
-    echo " 5. Storage Analyzer"
-    echo " 6. Backup Package List"
-
-    echo
-    echo -e "${C} [ DIAGNOSTICS ]${N}"
-    echo " 7. Network Diagnostics"
-    echo " 8. ADB Monitor"
-    echo " 9. Activity Logs"
-
-    echo
-    echo -e "${R} 0. Exit Toolbox${N}"
-
-    line
-
-    read -r -p " SELECT OPTION >> " option
-
-    case "$option" in
-        1) system_info ;;
-        2) system_update ;;
-        3) cleaner ;;
-        4) package_manager ;;
-        5) storage_analyzer ;;
-        6) backup_packages ;;
-        7) network_tools ;;
-        8) adb_monitor ;;
-        9) activity_logs ;;
-
-        0)
-            echo
-            status "Session terminated."
-            echo -e "${C}Thank you for using TERMUX TOOLBOX.${N}"
-            exit 0
-            ;;
-
-        *)
-            error "Invalid option."
-            sleep 1
-            ;;
+        pause ;;
+      5) break ;;
+      *) warning 'Pilihan tidak valid.'; sleep 1 ;;
     esac
+  done
+}
+
+# ---------- 5. STORAGE ANALYZER ----------
+storage_analyzer() {
+  header
+  printf '%s[ STORAGE ANALYZER ]%s\n' "$C" "$N"
+  line
+  printf '%s[1] Ringkasan penyimpanan HOME%s\n' "$Y" "$N"
+  df -h "$HOME" 2>/dev/null || warning 'Tidak dapat membaca kapasitas penyimpanan.'
+  printf '\n%s[2] Folder terbesar di HOME%s\n' "$Y" "$N"
+  if has du; then du -h --max-depth=1 "$HOME" 2>/dev/null | sort -hr | head -15
+  else warning 'Perintah du tidak tersedia.'; fi
+  printf '\n%sCatatan: pemindaian folder dapat memerlukan waktu.%s\n' "$D" "$N"
+  pause
+}
+
+# ---------- 6. NETWORK DIAGNOSTICS ----------
+network_tools() {
+  header
+  printf '%s[ NETWORK DIAGNOSTICS ]%s\n' "$C" "$N"
+  line
+  printf '%s[1] Tes HTTPS%s\n' "$Y" "$N"
+  if has curl; then
+    if curl -L -sS --connect-timeout 5 --max-time 12 -o /dev/null https://termux.dev; then status 'HTTPS ke termux.dev berhasil.'
+    else warning 'HTTPS gagal/timeout. Periksa koneksi atau DNS.'; fi
+  else warning 'curl tidak tersedia. Instal dengan: pkg install curl'; fi
+  printf '\n%s[2] Tes DNS%s\n' "$Y" "$N"
+  if has getent; then
+    if getent hosts termux.dev; then status 'Resolusi DNS berhasil.'; else warning 'Resolusi DNS gagal.'; fi
+  elif has nslookup; then
+    if nslookup termux.dev; then status 'Pemeriksaan DNS selesai.'; else warning 'Resolusi DNS gagal.'; fi
+  else warning 'getent/nslookup tidak tersedia; tes DNS dilewati.'; fi
+  printf '\n%s[3] Tes ping (opsional)%s\n' "$Y" "$N"
+  if has ping; then ping -c 3 -W 3 1.1.1.1 || warning 'Ping gagal; beberapa jaringan memang memblokir ICMP.'
+  else warning 'ping tidak tersedia. Ini opsional; tidak perlu paket iputils.'; fi
+  pause
+}
+
+# ---------- 7. ADB MONITOR ----------
+adb_monitor() {
+  header
+  printf '%s[ ADB MONITOR ]%s\n' "$C" "$N"
+  line
+  if ! has adb; then
+    warning 'ADB belum terpasang. Instal dengan: pkg install android-tools'
+    pause; return
+  fi
+  local devices
+  printf '%s[ CONNECTED DEVICES ]%s\n' "$Y" "$N"
+  adb devices -l
+  devices="$(adb devices | awk 'NR>1 && $2=="device" {count++} END {print count+0}')"
+  if [[ "$devices" -eq 0 ]]; then
+    warning 'Belum ada perangkat berstatus device. Hubungkan melalui Wireless debugging terlebih dahulu.'
+    pause; return
+  fi
+  printf '\n%s[ OPTIONAL PACKAGE INSPECTION ]%s\n' "$Y" "$N"
+  if ask 'Lihat daftar aplikasi pihak ketiga pada perangkat yang terhubung?'; then
+    adb shell pm list packages -3 || warning 'Gagal membaca daftar aplikasi. Periksa izin/koneksi ADB.'
+  fi
+  printf '\n'
+  warning 'Mode monitor hanya membaca informasi; tidak menghapus aplikasi Android.'
+  pause
+}
+
+# ---------- 8. PACKAGE BACKUP ----------
+backup_packages() {
+  header
+  printf '%s[ PACKAGE LIST BACKUP ]%s\n' "$C" "$N"
+  line
+  local file tmp
+  file="$BACKUPS/packages_$(date +%Y%m%d_%H%M%S).txt"
+  tmp="${file}.tmp"
+  if ! has dpkg-query; then error 'dpkg-query tidak tersedia.'; pause; return; fi
+  if dpkg-query -W -f='${binary:Package}\n' > "$tmp" 2>/dev/null && [[ -s "$tmp" ]]; then
+    mv "$tmp" "$file"
+    status 'Daftar paket berhasil disimpan.'
+    printf ' Lokasi: %s\n' "$file"
+    printf ' Jumlah: %s paket\n' "$(wc -l < "$file" | tr -d ' ')"
+  else
+    rm -f "$tmp"
+    error 'Backup gagal atau daftar paket kosong.'
+  fi
+  pause
+}
+
+# ---------- 9. ACTIVITY LOGS ----------
+activity_logs() {
+  header
+  printf '%s[ ACTIVITY LOGS ]%s\n' "$C" "$N"
+  line
+  printf ' Lokasi log: %s\n\n' "$LOGS"
+  ls -lh "$LOGS" 2>/dev/null || warning 'Belum ada file log.'
+  printf '\n'
+  if [[ -f "$LOG_FILE" ]] && ask 'Lihat log hari ini?'; then
+    # Temporarily stop tee logging while reading the same log file.
+    if has less; then less -F "$LOG_FILE"; else tail -n 200 "$LOG_FILE"; fi
+  fi
+  pause
+}
+
+# ---------- MAIN DASHBOARD ----------
+while true; do
+  header
+  printf '%s USER    : %s%s\n' "$W" "$(id -un 2>/dev/null || whoami)" "$N"
+  printf '%s STORAGE : %s FREE%s\n' "$W" "$(disk_free)" "$N"
+  printf '%s DEVICE  : %s%s\n' "$W" "$(uname -m 2>/dev/null || echo Unknown)" "$N"
+  printf '%s STATUS  : %sTOOLBOX ONLINE%s\n' "$W" "$G" "$N"
+  line
+  printf '%s[ SYSTEM UTILITIES ]%s\n' "$C" "$N"
+  printf ' 1. System Information\n 2. System Updater\n 3. System Cleaner\n\n'
+  printf '%s[ PACKAGE & STORAGE ]%s\n' "$C" "$N"
+  printf ' 4. Package Manager\n 5. Storage Analyzer\n 6. Backup Package List\n\n'
+  printf '%s[ DIAGNOSTICS ]%s\n' "$C" "$N"
+  printf ' 7. Network Diagnostics\n 8. ADB Monitor\n 9. Activity Logs\n\n'
+  printf '%s 0. Exit Termux Toolbox%s\n' "$R" "$N"
+  line
+  printf ' SELECT OPTION >> '
+  IFS= read -r option || { printf '\n'; break; }
+  case "$option" in
+    1) system_info ;;
+    2) system_update ;;
+    3) cleaner ;;
+    4) package_manager ;;
+    5) storage_analyzer ;;
+    6) backup_packages ;;
+    7) network_tools ;;
+    8) adb_monitor ;;
+    9) activity_logs ;;
+    0) printf '\n'; status 'Session terminated.'; printf 'Thank you for using TERMUX TOOLBOX.\n'; exit 0 ;;
+    *) error 'Pilihan tidak valid.'; sleep 1 ;;
+  esac
 done
