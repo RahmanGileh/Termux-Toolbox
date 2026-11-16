@@ -21,16 +21,15 @@ Catatan kecil dari pembuat
 
 > Awalnya pembuat cuma ingin mengurangi pekerjaan mengetik perintah berulang-ulang.
 
-Masalahnya, pembuat ini punya kebiasaan aneh: terlalu pintar untuk kemalasannya sendiri. Niatnya menghemat beberapa baris perintah, ujung-ujungnya malah bikin satu toolbox, menu interaktif, sistem log, backup, validasi input, dan README panjang yang mungkin lebih rajin dibaca daripada kode sumbernya.
+> Masalahnya, pembuat ini punya kebiasaan aneh: terlalu pintar untuk kemalasannya sendiri. Niatnya menghemat beberapa baris perintah, ujung-ujungnya malah bikin satu toolbox, menu interaktif, sistem log, backup, validasi input, dan README panjang yang mungkin lebih rajin dibaca daripada kode sumbernya.
 
-Ada orang yang kalau malas akan berhenti bekerja. Ada juga yang kalau malas malah membuat repositori GitHub supaya besok tidak perlu bekerja dua kali.
+> Ada orang yang kalau malas akan berhenti bekerja. Ada juga yang kalau malas malah membuat repositori GitHub supaya besok tidak perlu bekerja dua kali.
 
-Kami tidak menghilangkan pekerjaan. Kami hanya memindahkan pekerjaan ke kode.
+> Kami tidak menghilangkan pekerjaan. Kami hanya memindahkan pekerjaan ke kode.
 
-Kalau suatu hari pembuat terlihat sedang tidak melakukan apa-apa, jangan langsung disimpulkan sedang menganggur. Bisa jadi dia sedang memikirkan cara agar tidak perlu mengetik perintah yang sama untuk ke-47 kalinya.
+> Kalau suatu hari pembuat terlihat sedang tidak melakukan apa-apa, jangan langsung disimpulkan sedang menganggur. Bisa jadi dia sedang memikirkan cara agar tidak perlu mengetik perintah yang sama untuk ke-47 kalinya.
 
-— RahmanGileh
-
+> — RahmanGileh
 
 
 Fitur
